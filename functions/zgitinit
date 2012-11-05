@@ -5,6 +5,10 @@
 typeset -gA zgit_info
 zgit_info=()
 
+zgit_git_cmd() {
+  eval "$(which --skip-alias git) $*"
+}
+
 zgit_chpwd_hook() {
 	zgit_info_update
 }
@@ -25,14 +29,14 @@ zgit_precmd_hook() {
 zgit_info_update() {
 	zgit_info=()
 
-	local gitdir="$(git rev-parse --show-toplevel 2>/dev/null)"
+	local gitdir="$(zgit_git_cmd rev-parse --show-toplevel 2>/dev/null)"
 	if [ $? -ne 0 ] || [ -z "$gitdir" ]; then
 		return
 	fi
 
 	zgit_info[dir]=$gitdir
-	zgit_info[bare]=$(git rev-parse --is-bare-repository)
-	zgit_info[inwork]=$(git rev-parse --is-inside-work-tree)
+	zgit_info[bare]=$(zgit_git_cmd rev-parse --is-bare-repository)
+	zgit_info[inwork]=$(zgit_git_cmd rev-parse --is-inside-work-tree)
 }
 
 zgit_isgit() {
@@ -66,13 +70,13 @@ zgit_head() {
 
 	if [ -z "$zgit_info[head]" ]; then
 		local name=''
-		name=$(git symbolic-ref -q HEAD)
+		name=$(zgit_git_cmd symbolic-ref -q HEAD)
 		if [ $? -eq 0 ]; then
 			if [[ $name == refs/(heads|tags)/* ]]; then
 				name=${name#refs/(heads|tags)/}
 			fi
 		else
-			name=$(git name-rev --name-only --no-undefined --always HEAD)
+			name=$(zgit_git_cmd name-rev --name-only --no-undefined --always HEAD)
 			if [ $? -ne 0 ]; then
 				return 1
 			elif [[ $name == remotes/* ]]; then
@@ -90,11 +94,11 @@ zgit_branch() {
 	zgit_isbare && return 1
 
 	if [ -z "$zgit_info[branch]" ]; then
-		local branch=$(git symbolic-ref HEAD 2>/dev/null)
+		local branch=$(zgit_git_cmd symbolic-ref HEAD 2>/dev/null)
 		if [ $? -eq 0 ]; then
 			branch=${branch##*/}
 		else
-			branch=$(git name-rev --name-only --always HEAD)
+			branch=$(zgit_git_cmd name-rev --name-only --always HEAD)
 		fi
 		zgit_info[branch]=$branch
 	fi
@@ -120,7 +124,7 @@ zgit_tracking_remote() {
 	local k="tracking_$branch"
 	local remote
 	if [ -z "$zgit_info[$k]" ]; then
-		remote=$(git config branch.$branch.remote)
+		remote=$(zgit_git_cmd config branch.$branch.remote)
 		zgit_info[$k]=$remote
 	fi
 
@@ -143,7 +147,7 @@ zgit_tracking_merge() {
 	local remote=$(zgit_tracking_remote $branch)
 	[ $? -ne 0 ] && return 1
 	if [ -n "$remote" ]; then # tracking branch
-		local merge=$(git config branch.$branch.merge)
+		local merge=$(zgit_git_cmd config branch.$branch.merge)
 		if [ $remote != "." ]; then
 			merge=$remote/$(basename $merge)
 		fi
@@ -165,7 +169,7 @@ zgit_isindexclean() {
 
 zgit_isworktreeclean() {
 	zgit_isgit || return 1
-	if [ -z "$(git ls-files $zgit_info[dir] --modified)" ]; then
+	if [ -z "$(zgit_git_cmd ls-files $zgit_info[dir] --modified)" ]; then
 		return 0
 	else
 		return 1
@@ -175,7 +179,7 @@ zgit_isworktreeclean() {
 zgit_hasuntracked() {
 	zgit_isgit || return 1
 	local -a flist
-	flist=($(git ls-files --others --exclude-standard))
+	flist=($(zgit_git_cmd ls-files --others --exclude-standard))
 	if [ $#flist -gt 0 ]; then
 		return 0
 	else
@@ -186,7 +190,7 @@ zgit_hasuntracked() {
 zgit_hasunmerged() {
 	zgit_isgit || return 1
 	local -a flist
-	flist=($(git ls-files -u))
+	flist=($(zgit_git_cmd ls-files -u))
 	if [ $#flist -gt 0 ]; then
 		return 0
 	else
