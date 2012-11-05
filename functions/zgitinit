@@ -13,17 +13,8 @@ zgit_chpwd_hook() {
 	zgit_info_update
 }
 
-zgit_preexec_hook() {
-	if [[ $2 == git\ * ]] || [[ $2 == *\ git\ * ]]; then
-		zgit_precmd_do_update=1
-	fi
-}
-
 zgit_precmd_hook() {
-	if [ $zgit_precmd_do_update ]; then
-		unset zgit_precmd_do_update
-		zgit_info_update
-	fi
+  zgit_info_update
 }
 
 zgit_info_update() {
@@ -240,7 +231,6 @@ zgit_rebaseinfo() {
 }
 
 add-zsh-hook chpwd zgit_chpwd_hook
-add-zsh-hook preexec zgit_preexec_hook
 add-zsh-hook precmd zgit_precmd_hook
 
 zgit_info_update
