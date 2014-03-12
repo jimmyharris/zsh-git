@@ -6,7 +6,7 @@ typeset -gA zgit_info
 zgit_info=()
 
 zgit_git_cmd() {
-  if [[ $OSTYPE == "gnu-linux" ]]; then
+  if [[ $OSTYPE == "linux-gnu" ]]; then
     eval "$(which --skip-alias git) $*"
   else
     eval "/usr/local/bin/git $*"
